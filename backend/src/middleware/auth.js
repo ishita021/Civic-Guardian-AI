@@ -6,54 +6,80 @@ const User = require('../models/User');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
 
+// ── Token Extraction ──────────────────────────────────────────────────────────
+
 /**
- * Middleware: Verify JWT and attach user to request.
+ * Pulls the raw JWT string from the Authorization header.
+ * Supports: "Bearer <token>"
+ */
+const extractToken = (req) => {
+  const auth = req.headers.authorization;
+  if (auth && auth.startsWith('Bearer ')) {
+    return auth.split(' ')[1];
+  }
+  return null;
+};
+
+// ── Middleware ────────────────────────────────────────────────────────────────
+
+/**
+ * protect
+ * Verifies the JWT, loads the user, and attaches them to req.user.
+ * Rejects requests with expired, invalid, or missing tokens.
  */
 const protect = catchAsync(async (req, _res, next) => {
-  // 1. Extract token from Authorization header or cookie
-  let token;
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer ')
-  ) {
-    token = req.headers.authorization.split(' ')[1];
-  }
-
+  // 1. Extract token
+  const token = extractToken(req);
   if (!token) {
-    return next(new AppError('You are not logged in. Please log in to access this route.', 401));
+    return next(
+      new AppError('Authentication required. Please log in to continue.', 401)
+    );
   }
 
-  // 2. Verify token
+  // 2. Verify signature & expiry
   const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
 
-  // 3. Check if user still exists
-  const currentUser = await User.findById(decoded.id).select('+passwordChangedAt');
+  // 3. Confirm the user account still exists
+  const currentUser = await User.findById(decoded.id).select('+passwordChangedAt +isActive');
   if (!currentUser) {
-    return next(new AppError('The user belonging to this token no longer exists.', 401));
+    return next(
+      new AppError('The account associated with this token no longer exists.', 401)
+    );
   }
 
-  // 4. Check if password was changed after the token was issued
+  // 4. Confirm the account is active
+  if (!currentUser.isActive) {
+    return next(new AppError('This account has been deactivated.', 403));
+  }
+
+  // 5. Reject if password was changed after this token was issued
   if (currentUser.changedPasswordAfter(decoded.iat)) {
-    return next(new AppError('User recently changed password. Please log in again.', 401));
+    return next(
+      new AppError('Password was recently changed. Please log in again.', 401)
+    );
   }
 
+  // Attach user to request for downstream use
   req.user = currentUser;
   next();
 });
 
 /**
- * Middleware: Restrict access to specific roles.
- * @param  {...string} roles - Allowed roles (e.g., 'admin', 'moderator')
+ * restrictTo(...roles)
+ * Factory that returns a middleware allowing only the specified roles.
+ *
+ * @param  {...string} roles  e.g. 'admin', 'moderator'
  */
-const restrictTo = (...roles) => {
-  return (req, _res, next) => {
-    if (!roles.includes(req.user.role)) {
-      return next(
-        new AppError('You do not have permission to perform this action.', 403)
-      );
-    }
-    next();
-  };
+const restrictTo = (...roles) => (req, _res, next) => {
+  if (!roles.includes(req.user.role)) {
+    return next(
+      new AppError(
+        `Access denied. Requires one of the following roles: ${roles.join(', ')}.`,
+        403
+      )
+    );
+  }
+  next();
 };
 
 module.exports = { protect, restrictTo };

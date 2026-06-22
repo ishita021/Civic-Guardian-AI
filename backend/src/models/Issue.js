@@ -2,7 +2,9 @@
 
 const mongoose = require('mongoose');
 
-const ISSUE_CATEGORIES = [
+// ── Enum Constants ────────────────────────────────────────────────────────────
+
+const CATEGORIES = [
   'pothole',
   'garbage',
   'water_leakage',
@@ -16,84 +18,95 @@ const ISSUE_CATEGORIES = [
   'other',
 ];
 
-const ISSUE_STATUSES = ['pending', 'verified', 'in_progress', 'resolved', 'rejected', 'closed'];
-const SEVERITY_LEVELS = ['low', 'medium', 'high', 'critical'];
+const SEVERITIES = ['low', 'medium', 'high', 'critical'];
 
-const verificationSchema = new mongoose.Schema(
-  {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    vote: { type: String, enum: ['confirm', 'deny'], required: true },
-    comment: { type: String, maxlength: 300, default: '' },
-    createdAt: { type: Date, default: Date.now },
-  },
-  { _id: false }
-);
+const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 
+const STATUSES = ['pending', 'verified', 'in_progress', 'resolved', 'rejected', 'closed'];
+
+// ── Sub-schemas ───────────────────────────────────────────────────────────────
+
+/**
+ * Each status change is recorded as an immutable audit entry.
+ */
 const statusHistorySchema = new mongoose.Schema(
   {
-    status: { type: String, enum: ISSUE_STATUSES, required: true },
-    changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    note: { type: String, maxlength: 500, default: '' },
-    changedAt: { type: Date, default: Date.now },
+    status: {
+      type: String,
+      enum: STATUSES,
+      required: true,
+    },
+    changedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    note: {
+      type: String,
+      maxlength: [500, 'Note cannot exceed 500 characters.'],
+      default: '',
+    },
+    changedAt: {
+      type: Date,
+      default: Date.now,
+    },
   },
   { _id: false }
 );
+
+/**
+ * Community verification votes.
+ */
+const verificationSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    vote: {
+      type: String,
+      enum: ['confirm', 'deny'],
+      required: true,
+    },
+    comment: {
+      type: String,
+      maxlength: [300, 'Comment cannot exceed 300 characters.'],
+      default: '',
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false }
+);
+
+// ── Main Issue Schema ─────────────────────────────────────────────────────────
 
 const issueSchema = new mongoose.Schema(
   {
+    // ── Core Fields ───────────────────────────────────────────────────────────
     title: {
       type: String,
-      required: [true, 'Issue title is required.'],
+      required: [true, 'Title is required.'],
       trim: true,
+      minlength: [5, 'Title must be at least 5 characters.'],
       maxlength: [150, 'Title cannot exceed 150 characters.'],
     },
     description: {
       type: String,
       required: [true, 'Description is required.'],
+      minlength: [10, 'Description must be at least 10 characters.'],
       maxlength: [2000, 'Description cannot exceed 2000 characters.'],
     },
-    category: {
+
+    // ── Media ─────────────────────────────────────────────────────────────────
+    imageUrl: {
       type: String,
-      required: [true, 'Category is required.'],
-      enum: { values: ISSUE_CATEGORIES, message: 'Invalid category.' },
+      default: null,
+      trim: true,
     },
-    status: {
-      type: String,
-      enum: ISSUE_STATUSES,
-      default: 'pending',
-    },
-    severity: {
-      type: String,
-      enum: { values: SEVERITY_LEVELS, message: 'Invalid severity level.' },
-      default: 'medium',
-    },
-    // AI analysis from Gemini
-    aiAnalysis: {
-      detectedCategory: { type: String, default: null },
-      confidence: { type: Number, min: 0, max: 1, default: null },
-      summary: { type: String, default: null },
-      suggestedSeverity: { type: String, default: null },
-      tags: [{ type: String }],
-      analyzedAt: { type: Date, default: null },
-    },
-    // Geospatial
-    location: {
-      type: {
-        type: String,
-        enum: ['Point'],
-        required: true,
-        default: 'Point',
-      },
-      coordinates: {
-        type: [Number], // [longitude, latitude]
-        required: [true, 'Location coordinates are required.'],
-      },
-      address: { type: String, trim: true },
-      city: { type: String, trim: true },
-      ward: { type: String, trim: true },
-      landmark: { type: String, trim: true },
-    },
-    // Media attachments
+    // Additional images array (supports multi-photo upload)
     images: [
       {
         url: { type: String, required: true },
@@ -101,37 +114,100 @@ const issueSchema = new mongoose.Schema(
         uploadedAt: { type: Date, default: Date.now },
       },
     ],
-    // Reporter
-    reportedBy: {
+
+    // ── Location ──────────────────────────────────────────────────────────────
+    location: {
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point',
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        required: [true, 'Location coordinates are required.'],
+        validate: {
+          validator: (v) =>
+            Array.isArray(v) &&
+            v.length === 2 &&
+            v[0] >= -180 && v[0] <= 180 &&
+            v[1] >= -90  && v[1] <= 90,
+          message: 'Coordinates must be [longitude, latitude] with valid ranges.',
+        },
+      },
+      address: { type: String, trim: true, default: null },
+      city:    { type: String, trim: true, default: null },
+      ward:    { type: String, trim: true, default: null },
+      landmark:{ type: String, trim: true, default: null },
+    },
+
+    // ── Classification ────────────────────────────────────────────────────────
+    category: {
+      type: String,
+      required: [true, 'Category is required.'],
+      enum: { values: CATEGORIES, message: '{VALUE} is not a valid category.' },
+    },
+    severity: {
+      type: String,
+      required: [true, 'Severity is required.'],
+      enum: { values: SEVERITIES, message: '{VALUE} is not a valid severity level.' },
+      default: 'medium',
+    },
+    priority: {
+      type: String,
+      required: [true, 'Priority is required.'],
+      enum: { values: PRIORITIES, message: '{VALUE} is not a valid priority.' },
+      default: 'medium',
+    },
+    status: {
+      type: String,
+      enum: { values: STATUSES, message: '{VALUE} is not a valid status.' },
+      default: 'pending',
+    },
+
+    // ── Ownership ─────────────────────────────────────────────────────────────
+    createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Reporter is required.'],
+      required: [true, 'Reporter (createdBy) is required.'],
     },
-    // Assigned authority
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: null,
     },
-    // Community verification
+
+    // ── AI Analysis (Gemini) ──────────────────────────────────────────────────
+    aiAnalysis: {
+      detectedCategory: { type: String, default: null },
+      confidence:       { type: Number, min: 0, max: 1, default: null },
+      summary:          { type: String, default: null },
+      suggestedSeverity:{ type: String, default: null },
+      tags:             [{ type: String }],
+      analyzedAt:       { type: Date, default: null },
+    },
+
+    // ── Community Engagement ──────────────────────────────────────────────────
     verifications: [verificationSchema],
-    confirmCount: { type: Number, default: 0 },
-    denyCount: { type: Number, default: 0 },
-    // Status history for audit trail
+    confirmCount:  { type: Number, default: 0, min: 0 },
+    denyCount:     { type: Number, default: 0, min: 0 },
+
+    upvotes:     [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    upvoteCount: { type: Number, default: 0, min: 0 },
+
+    // ── Audit Trail ───────────────────────────────────────────────────────────
     statusHistory: [statusHistorySchema],
-    // Resolution
-    resolvedAt: { type: Date, default: null },
+
+    // ── Resolution ────────────────────────────────────────────────────────────
+    resolvedAt:     { type: Date, default: null },
     resolutionNote: { type: String, maxlength: 1000, default: '' },
-    // Upvotes
-    upvotes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-    upvoteCount: { type: Number, default: 0 },
-    // Prediction flag
-    isPredicted: { type: Boolean, default: false },
+
+    // ── Prediction Metadata ───────────────────────────────────────────────────
+    isPredicted:     { type: Boolean, default: false },
     predictionScore: { type: Number, min: 0, max: 1, default: null },
   },
   {
-    timestamps: true,
-    toJSON: { virtuals: true },
+    timestamps: true, // adds createdAt + updatedAt
+    toJSON:   { virtuals: true },
     toObject: { virtuals: true },
   }
 );
@@ -139,20 +215,48 @@ const issueSchema = new mongoose.Schema(
 // ── Indexes ───────────────────────────────────────────────────────────────────
 issueSchema.index({ location: '2dsphere' });
 issueSchema.index({ status: 1, category: 1 });
-issueSchema.index({ reportedBy: 1 });
+issueSchema.index({ createdBy: 1 });
 issueSchema.index({ createdAt: -1 });
 issueSchema.index({ 'location.city': 1, status: 1 });
+issueSchema.index({ priority: 1, status: 1 });
 
-// ── Pre-save: Track status history ───────────────────────────────────────────
+// ── Virtuals ──────────────────────────────────────────────────────────────────
+
+/**
+ * isResolved: convenience boolean
+ */
+issueSchema.virtual('isResolved').get(function () {
+  return this.status === 'resolved';
+});
+
+/**
+ * ageInDays: how long ago this issue was reported
+ */
+issueSchema.virtual('ageInDays').get(function () {
+  return Math.floor((Date.now() - this.createdAt) / 86400000);
+});
+
+// ── Middleware ────────────────────────────────────────────────────────────────
+
+/**
+ * Append an audit entry whenever status changes on an existing document.
+ * Also sets resolvedAt when the issue is marked resolved.
+ */
 issueSchema.pre('save', function (next) {
   if (this.isModified('status') && !this.isNew) {
-    this.statusHistory.push({ status: this.status });
-    if (this.status === 'resolved') {
+    this.statusHistory.push({
+      status: this.status,
+      changedAt: new Date(),
+    });
+
+    if (this.status === 'resolved' && !this.resolvedAt) {
       this.resolvedAt = new Date();
     }
   }
   next();
 });
+
+// ── Model ─────────────────────────────────────────────────────────────────────
 
 const Issue = mongoose.model('Issue', issueSchema);
 module.exports = Issue;

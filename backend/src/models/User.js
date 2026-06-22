@@ -59,6 +59,13 @@ const userSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    // trustScore: community trust rating (0–100) earned via verified reports & verifications
+    trustScore: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
     issuesReported: {
       type: Number,
       default: 0,
@@ -108,10 +115,38 @@ userSchema.pre('save', function (next) {
   next();
 });
 
+// ── Virtuals ──────────────────────────────────────────────────────────────────
+
+/**
+ * trustLevel: human-readable label derived from trustScore
+ */
+userSchema.virtual('trustLevel').get(function () {
+  if (this.trustScore >= 80) return 'guardian';
+  if (this.trustScore >= 60) return 'trusted';
+  if (this.trustScore >= 40) return 'active';
+  if (this.trustScore >= 20) return 'newcomer';
+  return 'unverified';
+});
+
 // ── Instance Methods ──────────────────────────────────────────────────────────
 
 userSchema.methods.correctPassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
+};
+
+/**
+ * Recalculates trustScore based on civic activity.
+ * trustScore is capped at 100.
+ *   - Each verified report   → +5 pts
+ *   - Each verification cast → +3 pts
+ *   - civicScore bonus       → log10(civicScore+1) * 10 (max ~20 pts)
+ */
+userSchema.methods.recalculateTrustScore = function () {
+  const reportPts  = Math.min(this.issuesReported  * 5,  40);
+  const verifyPts  = Math.min(this.issuesVerified  * 3,  30);
+  const civicBonus = Math.min(Math.log10(this.civicScore + 1) * 10, 20);
+  this.trustScore  = Math.min(Math.round(reportPts + verifyPts + civicBonus), 100);
+  return this.trustScore;
 };
 
 userSchema.methods.changedPasswordAfter = function (jwtTimestamp) {
