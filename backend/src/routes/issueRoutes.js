@@ -137,6 +137,12 @@ router.put(
 );
 
 /**
+ * @route  POST /api/v1/issues/:id/reanalyze
+ * @desc   Re-run Gemini AI analysis on an existing issue
+ */
+router.post('/:id/reanalyze', restrictTo('admin', 'moderator'), issueController.reanalyzeIssue);
+
+/**
  * @route  POST /api/v1/issues/:id/verify
  * @desc   Submit a community verification vote
  */

@@ -177,13 +177,72 @@ const issueSchema = new mongoose.Schema(
     },
 
     // ── AI Analysis (Gemini) ──────────────────────────────────────────────────
+    // Fields populated automatically by geminiService.analyzeIssue()
+    // whenever a new issue is created. Never set manually by clients.
+
+    /** AI-detected civic category (e.g. "Road Damage", "Garbage Collection") */
+    aiCategory: {
+      type:    String,
+      default: null,
+      trim:    true,
+    },
+
+    /** AI-assessed priority: low | medium | high | urgent */
+    aiPriority: {
+      type:    String,
+      enum:    { values: ['low', 'medium', 'high', 'urgent', null], message: 'Invalid AI priority.' },
+      default: null,
+    },
+
+    /**
+     * Gemini's confidence score (0–100).
+     * 0 means AI was not run or returned an error.
+     */
+    aiConfidence: {
+      type:    Number,
+      min:     0,
+      max:     100,
+      default: 0,
+    },
+
+    /** Government department Gemini recommends to handle this issue */
+    aiDepartment: {
+      type:    String,
+      default: null,
+      trim:    true,
+    },
+
+    /** Gemini's suggested resolution / next action */
+    aiSuggestion: {
+      type:    String,
+      default: null,
+      trim:    true,
+    },
+
+    /** Short keyword tags returned by Gemini */
+    aiTags: [{ type: String, trim: true }],
+
+    /** Timestamp of the last successful AI analysis */
+    aiAnalyzedAt: {
+      type:    Date,
+      default: null,
+    },
+
+    /** Stores error message if Gemini failed (null on success) */
+    aiError: {
+      type:    String,
+      default: null,
+      select:  false, // hidden from API responses by default
+    },
+
+    // Legacy nested field — kept for backward compatibility with existing docs
     aiAnalysis: {
-      detectedCategory: { type: String, default: null },
-      confidence:       { type: Number, min: 0, max: 1, default: null },
-      summary:          { type: String, default: null },
-      suggestedSeverity:{ type: String, default: null },
-      tags:             [{ type: String }],
-      analyzedAt:       { type: Date, default: null },
+      detectedCategory:  { type: String, default: null },
+      confidence:        { type: Number, min: 0, max: 1, default: null },
+      summary:           { type: String, default: null },
+      suggestedSeverity: { type: String, default: null },
+      tags:              [{ type: String }],
+      analyzedAt:        { type: Date, default: null },
     },
 
     // ── Community Engagement ──────────────────────────────────────────────────
@@ -219,6 +278,7 @@ issueSchema.index({ createdBy: 1 });
 issueSchema.index({ createdAt: -1 });
 issueSchema.index({ 'location.city': 1, status: 1 });
 issueSchema.index({ priority: 1, status: 1 });
+issueSchema.index({ aiPriority: 1, status: 1 }); // AI-priority queries
 
 // ── Virtuals ──────────────────────────────────────────────────────────────────
 
