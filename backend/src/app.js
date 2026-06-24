@@ -19,13 +19,14 @@ const requestLogger = require('./middleware/requestLogger');
 const logger = require('./config/logger');
 
 // Route imports
-const authRoutes = require('./routes/authRoutes');
-const issueRoutes = require('./routes/issueRoutes');
-const userRoutes = require('./routes/userRoutes');
-const alertRoutes = require('./routes/alertRoutes');
-const predictionRoutes = require('./routes/predictionRoutes');
-const dashboardRoutes = require('./routes/dashboardRoutes');
-const aiRoutes = require('./routes/aiRoutes');
+const authRoutes         = require('./routes/authRoutes');
+const issueRoutes        = require('./routes/issueRoutes');
+const userRoutes         = require('./routes/userRoutes');
+const alertRoutes        = require('./routes/alertRoutes');
+const predictionRoutes   = require('./routes/predictionRoutes');
+const dashboardRoutes    = require('./routes/dashboardRoutes');
+const aiRoutes           = require('./routes/aiRoutes');
+const verificationRoutes = require('./routes/verificationRoutes');
 
 const app = express();
 
@@ -89,13 +90,14 @@ app.get('/health', (_req, res) => {
 // ── API Routes ────────────────────────────────────────────────────────────────
 const API_PREFIX = '/api/v1';
 
-app.use(`${API_PREFIX}/auth`, authRoutes);
-app.use(`${API_PREFIX}/issues`, issueRoutes);
-app.use(`${API_PREFIX}/users`, userRoutes);
-app.use(`${API_PREFIX}/alerts`, alertRoutes);
-app.use(`${API_PREFIX}/predictions`, predictionRoutes);
-app.use(`${API_PREFIX}/dashboard`, dashboardRoutes);
-app.use(`${API_PREFIX}/ai`, aiRoutes);
+app.use(`${API_PREFIX}/auth`,          authRoutes);
+app.use(`${API_PREFIX}/issues`,        issueRoutes);
+app.use(`${API_PREFIX}/users`,         userRoutes);
+app.use(`${API_PREFIX}/alerts`,        alertRoutes);
+app.use(`${API_PREFIX}/predictions`,   predictionRoutes);
+app.use(`${API_PREFIX}/dashboard`,     dashboardRoutes);
+app.use(`${API_PREFIX}/ai`,            aiRoutes);
+app.use(`${API_PREFIX}/verifications`, verificationRoutes);
 
 // ── 404 Handler ───────────────────────────────────────────────────────────────
 app.use(notFound);
