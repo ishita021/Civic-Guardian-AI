@@ -225,7 +225,7 @@ exports.getIssueVerifications = catchAsync(async (req, res, next) => {
  * @desc    Check whether the current user has already voted on this issue.
  * @access  Private
  */
-exports.getMyVote = catchAsync(async (req, res, next) => {
+exports.getMyVote = catchAsync(async (req, res, _next) => {
   const { issueId } = req.params;
 
   const vote = await Verification.findOne({

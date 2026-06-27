@@ -97,6 +97,16 @@ router
    */
   .post(
     upload.array('images', 5),
+    (req, res, next) => {
+      if (typeof req.body.location === 'string') {
+        try {
+          req.body.location = JSON.parse(req.body.location);
+        } catch (err) {
+          // Fall through, validation rules will catch invalid formats
+        }
+      }
+      next();
+    },
     createIssueRules,
     validate,
     issueController.createIssue

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Shield, LayoutDashboard, MapPin, CheckCircle2, User, LogOut } from 'lucide-react';
+import { Shield, LayoutDashboard, MapPin, CheckCircle2, User, LogOut, Users, FileText, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import clsx from 'clsx';
 
@@ -9,6 +9,12 @@ const navItems = [
   { to: '/issues/report',icon: MapPin,          label: 'Report Issue'  },
   { to: '/verifications',icon: CheckCircle2,    label: 'Verify Issues' },
   { to: '/profile',      icon: User,            label: 'Profile'       },
+];
+
+const adminNavItems = [
+  { to: '/admin',            icon: ShieldCheck, label: 'Admin Overview' },
+  { to: '/admin/complaints', icon: FileText,    label: 'Complaints'     },
+  { to: '/admin/users',      icon: Users,       label: 'Users'          },
 ];
 
 export default function Sidebar() {
@@ -42,6 +48,31 @@ export default function Sidebar() {
             {label}
           </NavLink>
         ))}
+
+        {/* Admin section */}
+        {user?.role === 'admin' && (
+          <>
+            <div className="pt-3 pb-1">
+              <p className="px-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Admin</p>
+            </div>
+            {adminNavItems.map(({ to, icon: Icon, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/admin'}
+                className={({ isActive }) => clsx(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
+                  isActive
+                    ? 'bg-red-600/20 text-red-400 border border-red-700/40'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </NavLink>
+            ))}
+          </>
+        )}
       </nav>
 
       {/* User info */}

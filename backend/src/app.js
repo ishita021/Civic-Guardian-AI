@@ -16,7 +16,6 @@ const path = require('path');
 const errorHandler = require('./middleware/errorHandler');
 const notFound = require('./middleware/notFound');
 const requestLogger = require('./middleware/requestLogger');
-const logger = require('./config/logger');
 
 // Route imports
 const authRoutes         = require('./routes/authRoutes');
@@ -27,6 +26,7 @@ const predictionRoutes   = require('./routes/predictionRoutes');
 const dashboardRoutes    = require('./routes/dashboardRoutes');
 const aiRoutes           = require('./routes/aiRoutes');
 const verificationRoutes = require('./routes/verificationRoutes');
+const adminRoutes        = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -98,6 +98,7 @@ app.use(`${API_PREFIX}/predictions`,   predictionRoutes);
 app.use(`${API_PREFIX}/dashboard`,     dashboardRoutes);
 app.use(`${API_PREFIX}/ai`,            aiRoutes);
 app.use(`${API_PREFIX}/verifications`, verificationRoutes);
+app.use(`${API_PREFIX}/admin`,         adminRoutes);
 
 // ── 404 Handler ───────────────────────────────────────────────────────────────
 app.use(notFound);
