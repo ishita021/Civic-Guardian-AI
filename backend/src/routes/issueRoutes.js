@@ -9,9 +9,6 @@ const upload    = require('../middleware/upload');
 
 const router = express.Router();
 
-// All issue routes require a valid JWT
-router.use(protect);
-
 // ── Validation Rule Sets ──────────────────────────────────────────────────────
 
 const createIssueRules = [
@@ -96,6 +93,7 @@ router
    * Supports multipart/form-data (up to 5 images) OR JSON body with imageUrl.
    */
   .post(
+    protect,
     upload.array('images', 5),
     (req, res, next) => {
       if (typeof req.body.location === 'string') {
@@ -126,13 +124,13 @@ router
    * @route  PATCH /api/v1/issues/:id
    * @desc   Edit issue fields (reporter or admin)
    */
-  .patch(issueController.updateIssue)
+  .patch(protect, issueController.updateIssue)
 
   /**
    * @route  DELETE /api/v1/issues/:id
    * @desc   Delete an issue (reporter or admin)
    */
-  .delete(issueController.deleteIssue);
+  .delete(protect, issueController.deleteIssue);
 
 /**
  * @route  PUT /api/v1/issues/:id/status
@@ -140,6 +138,7 @@ router
  */
 router.put(
   '/:id/status',
+  protect,
   restrictTo('admin', 'moderator'),
   updateStatusRules,
   validate,
@@ -150,7 +149,7 @@ router.put(
  * @route  POST /api/v1/issues/:id/reanalyze
  * @desc   Re-run Gemini AI analysis on an existing issue
  */
-router.post('/:id/reanalyze', restrictTo('admin', 'moderator'), issueController.reanalyzeIssue);
+router.post('/:id/reanalyze', protect, restrictTo('admin', 'moderator'), issueController.reanalyzeIssue);
 
 /**
  * @route  POST /api/v1/issues/:id/verify
@@ -158,6 +157,7 @@ router.post('/:id/reanalyze', restrictTo('admin', 'moderator'), issueController.
  */
 router.post(
   '/:id/verify',
+  protect,
   verifyVoteRules,
   validate,
   issueController.verifyIssue
@@ -167,6 +167,6 @@ router.post(
  * @route  POST /api/v1/issues/:id/upvote
  * @desc   Toggle upvote on an issue
  */
-router.post('/:id/upvote', issueController.upvoteIssue);
+router.post('/:id/upvote', protect, issueController.upvoteIssue);
 
 module.exports = router;

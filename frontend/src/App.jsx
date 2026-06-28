@@ -9,6 +9,7 @@ import DashboardLayout from './layouts/DashboardLayout';
 import LandingPage   from './pages/LandingPage';
 import LoginPage     from './pages/auth/LoginPage';
 import RegisterPage  from './pages/auth/RegisterPage';
+import HowItWorksPage from './pages/HowItWorksPage';
 
 // Protected pages
 import DashboardPage    from './pages/dashboard/DashboardPage';
@@ -51,6 +52,9 @@ export default function App() {
       {/* ── Public routes ─────────────────────────────────────── */}
       <Route element={<PublicLayout />}>
         <Route path="/"         element={<LandingPage />} />
+        <Route path="/how-it-works" element={<HowItWorksPage />} />
+        <Route path="/issues"   element={<IssuesPage />} />
+        <Route path="/issues/:id" element={<IssueDetailPage />} />
         <Route path="/login"    element={<GuestRoute><LoginPage /></GuestRoute>} />
         <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
       </Route>
@@ -58,9 +62,7 @@ export default function App() {
       {/* ── Protected / dashboard routes ──────────────────────── */}
       <Route element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
         <Route path="/dashboard"               element={<DashboardPage />} />
-        <Route path="/issues"                  element={<IssuesPage />} />
         <Route path="/issues/report"           element={<ReportIssuePage />} />
-        <Route path="/issues/:id"              element={<IssueDetailPage />} />
         <Route path="/issues/:id/verify"       element={<VerificationsPage />} />
         <Route path="/profile"                 element={<ProfilePage />} />
       </Route>

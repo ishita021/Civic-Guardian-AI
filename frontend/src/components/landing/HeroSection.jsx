@@ -50,7 +50,7 @@ export default function HeroSection() {
             Start Reporting Free
             <ArrowRight className="w-5 h-5" />
           </Link>
-          <Link to="/#how-it-works" className="btn-secondary px-8 py-3.5 text-base">
+          <Link to="/how-it-works" className="btn-secondary px-8 py-3.5 text-base">
             See How It Works
           </Link>
         </div>

@@ -17,7 +17,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    const isAuthRequest = err.config?.url?.startsWith('/auth/');
+    if (err.response?.status === 401 && !isAuthRequest) {
       localStorage.removeItem('cg_token');
       window.location.href = '/login';
     }
