@@ -244,7 +244,6 @@ export default function ReportIssuePage() {
           Gemini AI will automatically analyze and route your report to the correct department.
         </p>
       </div>
-
       <form onSubmit={handleSubmit} className="card space-y-6 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
         {/* Title */}
         <div>

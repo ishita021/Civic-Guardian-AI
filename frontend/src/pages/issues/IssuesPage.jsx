@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { MapPin, Plus, Search, Filter, Brain, ThumbsUp, RefreshCw } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { MapPin, Plus, Search, Brain, ThumbsUp, RefreshCw } from 'lucide-react';
 import { issuesApi } from '../../api/issuesApi';
 import { StatusBadge, PriorityBadge } from '../../components/shared/StatusBadge';
 import { PageSpinner } from '../../components/shared/Spinner';
@@ -8,24 +8,44 @@ import toast from 'react-hot-toast';
 
 const STATUSES   = ['', 'pending', 'verified', 'in_progress', 'resolved', 'rejected'];
 const CATEGORIES = ['', 'pothole', 'garbage', 'water_leakage', 'broken_street_light', 'drainage', 'road_damage', 'other'];
+const PRIORITIES = ['', 'low', 'medium', 'high', 'urgent'];
+
+const getFiltersFromParams = (searchParams) => ({
+  status: searchParams.get('status') || '',
+  category: searchParams.get('category') || '',
+  priority: searchParams.get('priority') || '',
+  search: searchParams.get('search') || '',
+  page: Math.max(1, Number(searchParams.get('page')) || 1),
+});
 
 export default function IssuesPage() {
   const [issues,  setIssues]  = useState([]);
   const [loading, setLoading] = useState(true);
   const [total,   setTotal]   = useState(0);
-  const [filters, setFilters] = useState({ status: '', category: '', search: '', page: 1 });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filters = getFiltersFromParams(searchParams);
+
+  const updateFilter = (key, value) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    if (key !== 'page') next.set('page', '1');
+    setSearchParams(next);
+  };
 
   const fetchIssues = useCallback(() => {
     setLoading(true);
     const params = { limit: 12, sort: '-createdAt', page: filters.page };
     if (filters.status)   params.status   = filters.status;
     if (filters.category) params.category = filters.category;
+    if (filters.priority) params.priority = filters.priority;
+    if (filters.search.trim()) params.search = filters.search.trim();
 
     issuesApi.getAll(params)
       .then(r => { setIssues(r.data.data.issues); setTotal(r.data.total); })
       .catch(() => toast.error('Failed to load issues.'))
       .finally(() => setLoading(false));
-  }, [filters]);
+  }, [filters.status, filters.category, filters.priority, filters.search, filters.page]);
 
   useEffect(() => { fetchIssues(); }, [fetchIssues]);
 
@@ -45,13 +65,16 @@ export default function IssuesPage() {
         <div className="flex flex-wrap gap-3">
           <div className="relative flex-1 min-w-48">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-            <input className="input pl-9 py-2" placeholder="Search issues..." value={filters.search} onChange={e => setFilters(f => ({ ...f, search: e.target.value }))} />
+            <input className="input pl-9 py-2" placeholder="Search issues..." value={filters.search} onChange={e => updateFilter('search', e.target.value)} />
           </div>
-          <select className="input w-auto py-2 cursor-pointer" value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value, page: 1 }))}>
+          <select className="input w-auto py-2 cursor-pointer" value={filters.status} onChange={e => updateFilter('status', e.target.value)}>
             {STATUSES.map(s => <option key={s} value={s}>{s || 'All Statuses'}</option>)}
           </select>
-          <select className="input w-auto py-2 cursor-pointer" value={filters.category} onChange={e => setFilters(f => ({ ...f, category: e.target.value, page: 1 }))}>
+          <select className="input w-auto py-2 cursor-pointer" value={filters.category} onChange={e => updateFilter('category', e.target.value)}>
             {CATEGORIES.map(c => <option key={c} value={c}>{c ? c.replace('_', ' ') : 'All Categories'}</option>)}
+          </select>
+          <select className="input w-auto py-2 cursor-pointer" value={filters.priority} onChange={e => updateFilter('priority', e.target.value)}>
+            {PRIORITIES.map(p => <option key={p} value={p}>{p || 'All Priorities'}</option>)}
           </select>
           <button onClick={fetchIssues} className="btn-secondary py-2 px-3"><RefreshCw className="w-4 h-4" /></button>
         </div>
@@ -107,9 +130,9 @@ export default function IssuesPage() {
           {/* Pagination */}
           {total > 12 && (
             <div className="flex justify-center gap-3">
-              <button disabled={filters.page === 1} onClick={() => setFilters(f => ({ ...f, page: f.page - 1 }))} className="btn-secondary">Previous</button>
+              <button disabled={filters.page === 1} onClick={() => updateFilter('page', String(filters.page - 1))} className="btn-secondary">Previous</button>
               <span className="flex items-center text-sm text-slate-400">Page {filters.page}</span>
-              <button disabled={issues.length < 12} onClick={() => setFilters(f => ({ ...f, page: f.page + 1 }))} className="btn-secondary">Next</button>
+              <button disabled={issues.length < 12} onClick={() => updateFilter('page', String(filters.page + 1))} className="btn-secondary">Next</button>
             </div>
           )}
         </>

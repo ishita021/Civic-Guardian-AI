@@ -152,6 +152,20 @@ exports.getAllIssues = catchAsync(async (req, res) => {
     req.query
   )
     .filter()
+    .search([
+      'title',
+      'description',
+      'category',
+      'status',
+      'priority',
+      'severity',
+      'location.address',
+      'location.city',
+      'location.ward',
+      'aiCategory',
+      'aiDepartment',
+      'aiTags',
+    ])
     .sort()
     .limitFields()
     .paginate();
