@@ -98,6 +98,9 @@ export default function TopBar() {
         )}
       </form>
       <div className="flex items-center gap-3 self-end xl:self-auto">
+        <Link to="/issues" className="btn-secondary py-1.5 px-3 text-xs gap-1.5">
+          Issues Registered
+        </Link>
         <Link to="/issues/report" className="btn-primary py-1.5 px-3 text-xs gap-1.5">
           <Plus className="w-3.5 h-3.5" /> Report Issue
         </Link>

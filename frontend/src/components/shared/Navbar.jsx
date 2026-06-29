@@ -72,26 +72,27 @@ export default function Navbar() {
         </div>
 
         <form onSubmit={handleSearch} className="relative pb-3">
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Link to="/issues" className="btn-secondary text-sm py-2 px-4 sm:mr-2">Issues Registered</Link>
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
               <input
-                className="input h-10 rounded-lg py-2 pl-9 pr-3"
+                className="input h-10 rounded-lg py-2 pl-9 pr-3 w-full"
                 placeholder="Search registered issues"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap sm:flex-nowrap">
               <button
                 type="button"
-                className="btn-secondary h-10 flex-1 rounded-lg px-3 sm:flex-none"
+                className="btn-secondary h-10 rounded-lg px-3"
                 onClick={() => setFiltersOpen((value) => !value)}
                 aria-label="Filter issue search"
               >
                 <Filter className="w-4 h-4" />
               </button>
-              <button type="submit" className="btn-primary h-10 flex-1 rounded-lg px-4 sm:flex-none">
+              <button type="submit" className="btn-primary h-10 rounded-lg px-4">
                 Search
               </button>
             </div>
@@ -111,8 +112,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden border-t border-slate-800 bg-slate-950 px-4 py-4 flex flex-col gap-3 animate-fade-in">
-          <Link to="/#features"     className="text-sm text-slate-400 py-2" onClick={() => setOpen(false)}>Features</Link>
+        <div className="md:hidden border-t border-slate-800 bg-slate-950 px-4 py-4 flex flex-col gap-3 animate-fade-in">          <Link to="/issues" className="btn-secondary" onClick={() => setOpen(false)}>Issues Registered</Link>          <Link to="/#features"     className="text-sm text-slate-400 py-2" onClick={() => setOpen(false)}>Features</Link>
           <Link to="/#how-it-works" className="text-sm text-slate-400 py-2" onClick={() => setOpen(false)}>How it Works</Link>
           {isAuthenticated ? (
             <>
